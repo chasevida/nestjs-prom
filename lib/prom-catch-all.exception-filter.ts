@@ -1,9 +1,8 @@
-import { Catch, ArgumentsHost, HttpException, HttpStatus, Inject } from "@nestjs/common";
+import { Catch, ArgumentsHost, ExecutionContext, HttpException, HttpStatus } from "@nestjs/common";
 import { BaseExceptionFilter } from '@nestjs/core';
-import { CounterMetric, PromModuleOptions } from "./interfaces";
+import { GqlContextType, GqlExecutionContext } from '@nestjs/graphql'
+import { CounterMetric } from "./interfaces";
 import { normalizePath } from './utils';
-import { PromCounter } from './common';
-import { DEFAULT_PROM_OPTIONS } from './prom.constants';
 import { PromService } from './prom.service';
 
 function getBaseUrl(url?: string) {
@@ -37,20 +36,35 @@ export class PromCatchAllExceptionsFilter extends BaseExceptionFilter {
         exception: unknown,
         host: ArgumentsHost,
     ) {
-        const ctx = host.switchToHttp();
-        const request = ctx.getRequest();
-        const status =
-            exception instanceof HttpException
-                ? exception.getStatus()
-                : HttpStatus.INTERNAL_SERVER_ERROR;
+        const isGraphQLRequest = host.getType<GqlContextType>() === 'graphql'
 
-        const path = normalizePath(getBaseUrl(request.baseUrl || request.url), [], "#val");
+        const request = isGraphQLRequest
+            ? GqlExecutionContext.create(host as ExecutionContext).getContext()?.req
+            : host.switchToHttp().getRequest()
 
+        const baseUrl = request?.baseUrl ?? request?.url ?? '/'
+        const method = isGraphQLRequest
+            ? request?.method || 'POST'
+            : request?.method
+
+        const status = exception instanceof HttpException
+            ? exception.getStatus()
+            : HttpStatus.INTERNAL_SERVER_ERROR
+
+        const path = normalizePath(
+            getBaseUrl(baseUrl),
+            [],
+            '#val',
+        )
+    
         this._counter.inc({
-            method: request.method,
+            method,
             path,
             status,
-        });
-        super.catch(exception, host);
+        })
+
+        if ( ! isGraphQLRequest) {
+            super.catch(exception, host)
+        }
     }
 }
