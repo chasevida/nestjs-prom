@@ -42,7 +42,7 @@ export class PromCatchAllExceptionsFilter extends BaseExceptionFilter {
             ? GqlExecutionContext.create(host as ExecutionContext).getContext()?.req
             : host.switchToHttp().getRequest()
 
-        const baseUrl = request?.baseUrl ?? request?.url ?? '/'
+        const baseUrl = request?.baseUrl || request?.originalUrl || request?.url || '/'
         const method = isGraphQLRequest
             ? request?.method || 'POST'
             : request?.method

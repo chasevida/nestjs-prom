@@ -33,11 +33,11 @@ let PromCatchAllExceptionsFilter = class PromCatchAllExceptionsFilter extends co
         });
     }
     catch(exception, host) {
-        var _a, _b, _c;
+        var _a;
         const isGraphQLRequest = host.getType() === 'graphql';
         const request = isGraphQLRequest
             ? (_a = graphql_1.GqlExecutionContext.create(host).getContext()) === null || _a === void 0 ? void 0 : _a.req : host.switchToHttp().getRequest();
-        const baseUrl = (_c = (_b = request === null || request === void 0 ? void 0 : request.baseUrl) !== null && _b !== void 0 ? _b : request === null || request === void 0 ? void 0 : request.url) !== null && _c !== void 0 ? _c : '/';
+        const baseUrl = (request === null || request === void 0 ? void 0 : request.baseUrl) || (request === null || request === void 0 ? void 0 : request.originalUrl) || (request === null || request === void 0 ? void 0 : request.url) || '/';
         const method = isGraphQLRequest
             ? (request === null || request === void 0 ? void 0 : request.method) || 'POST'
             : request === null || request === void 0 ? void 0 : request.method;
